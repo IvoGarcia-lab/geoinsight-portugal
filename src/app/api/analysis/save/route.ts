@@ -53,6 +53,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(analysis);
   } catch (error: any) {
     console.error('Error saving analysis:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ 
+      error: error.message,
+      stack: error.stack,
+      code: error.code // Prisma error codes (e.g. P1001)
+    }, { status: 500 });
   }
 }
