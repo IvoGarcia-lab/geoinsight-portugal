@@ -1,0 +1,86 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  nutsCode  String   @unique
+  name      String
+  level     String   // "NUTS II" or "NUTS III"
+  
+  dataPoints DataPoint[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Indicator {
+  id          String   @id @default(cuid())
+  code        String   @unique // e.g. "pop_total"
+  namePt      String
+  unit        String
+  description String?
+  category    String?  // e.g. "Demografia", "Economia"
+  source      String?  // e.g. "INE"
+  
+  dataPoints  DataPoint[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model DataPoint {
+  id          String   @id @default(cuid())
+  year        Int
+  value       Float
+  
+  regionId    String
+  region      Region   @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  indicatorId String
+  indicator   Indicator @relation(fields: [indicatorId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([regionId, indicatorId, year])
+  @@index([regionId])
+  @@index([indicatorId])
+  @@index([year])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  
+  savedAnalyses SavedAnalysis[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SavedAnalysis {
+  id                 String   @id @default(cuid())
+  title              String
+  
+  primaryIndicator   String
+  secondaryIndicator String?
+  scaleType          String   @default("quantile")
+  overlayMode        String   @default("none")
+  year               Int
+
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
