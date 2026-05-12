@@ -1,6 +1,4 @@
-import { GoogleGenAI } from '@google/genai';
-
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+// API OpenRouter configuration
 
 export interface RegionIndicatorData {
   label: string;
@@ -42,7 +40,7 @@ FORMATO: Markdown. Sê direto, usa dados concretos. Não inventes dados — usa 
 export async function analyzeRegionStream(
   data: AnalysisRequest
 ): Promise<ReadableStream<Uint8Array>> {
-  if (!process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEY === 'your_api_key_here') {
+  if (!process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY === 'your_api_key_here') {
     // Return a fallback stream with a helpful message
     const fallbackText = generateFallbackAnalysis(data);
     return new ReadableStream({
@@ -54,50 +52,85 @@ export async function analyzeRegionStream(
   }
 
   const prompt = buildPrompt(data);
+  const encoder = new TextEncoder();
 
-  let response;
   try {
-    response = await genAI.models.generateContentStream({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
-      config: {
-        temperature: 0.3,
-        maxOutputTokens: 1024,
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'HTTP-Referer': 'https://geoinsight.local',
+        'X-OpenRouter-Title': 'GeoInsight',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-5.2',
+        messages: [
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenRouter API error: ${response.statusText}`);
+    }
+
+    if (!response.body) {
+      throw new Error('No response body');
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    return new ReadableStream({
+      async start(controller) {
+        let buffer = '';
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop() || '';
+            
+            for (const part of parts) {
+              const trimmed = part.trim();
+              if (trimmed.startsWith('data: ') && trimmed !== 'data: [DONE]') {
+                try {
+                  const data = JSON.parse(trimmed.slice(6));
+                  const text = data.choices[0]?.delta?.content || '';
+                  if (text) controller.enqueue(encoder.encode(text));
+                } catch (e) {
+                  // Ignore JSON parse errors for incomplete chunks
+                }
+              }
+            }
+          }
+          controller.close();
+        } catch (error) {
+          console.error('OpenRouter stream error:', error);
+          controller.enqueue(
+            encoder.encode('\n\n⚠️ Erro na análise AI. Tente novamente.')
+          );
+          controller.close();
+        }
       },
     });
   } catch (error: any) {
-    console.error('Gemini API call failed:', error?.message || error);
-    // Fallback if API fails (e.g. 429 Too Many Requests)
+    console.error('OpenRouter API call failed:', error?.message || error);
     const fallbackText = generateFallbackAnalysis(data);
     return new ReadableStream({
       start(controller) {
-        controller.enqueue(new TextEncoder().encode(fallbackText + '\n\n*(Nota: Ocorreu um erro ao aceder à API Gemini. Foram apresentados dados locais em alternativa.)*'));
+        controller.enqueue(new TextEncoder().encode(fallbackText + '\n\n*(Nota: Ocorreu um erro ao aceder à API OpenRouter. Foram apresentados dados locais em alternativa.)*'));
         controller.close();
       },
     });
   }
-
-  const encoder = new TextEncoder();
-
-  return new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of response) {
-          const text = chunk.text || '';
-          if (text) {
-            controller.enqueue(encoder.encode(text));
-          }
-        }
-        controller.close();
-      } catch (error) {
-        console.error('Gemini stream error:', error);
-        controller.enqueue(
-          encoder.encode('\n\n⚠️ Erro na análise AI. Tente novamente.')
-        );
-        controller.close();
-      }
-    },
-  });
 }
 
 /**
@@ -137,6 +170,6 @@ ${bottom ? `⚠️ Atenção a **${bottom[1].label}**: ${bottom[1].value?.toLoca
 Explore a correlação entre indicadores usando o scatter plot abaixo para identificar padrões regionais.
 
 ---
-*⚙️ Para análise AI completa, configure a \`GEMINI_API_KEY\` em \`.env.local\`*
-*Obtenha grátis em [aistudio.google.com/apikey](https://aistudio.google.com/apikey)*`;
+*⚙️ Para análise AI completa, configure a \`OPENROUTER_API_KEY\` em \`.env.local\`*
+*Obtenha grátis em [openrouter.ai](https://openrouter.ai)*`;
 }
