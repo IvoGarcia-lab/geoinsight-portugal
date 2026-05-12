@@ -1551,6 +1551,19 @@ html, body {
   border: 1px dashed rgba(255, 255, 255, 0.1);
 }
 
+.error-alert-small {
+  background: rgba(255, 71, 71, 0.1);
+  border: 1px solid rgba(255, 71, 71, 0.2);
+  color: #ff7070;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 11px;
+  margin-bottom: 16px;
+  line-height: 1.5;
+  word-break: break-word;
+  border-left: 3px solid #ff4747;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

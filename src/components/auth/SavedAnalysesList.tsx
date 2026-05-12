@@ -10,6 +10,7 @@ export default function SavedAnalysesList() {
   const { setActiveIndicator, setSecondaryIndicator, setScaleType, setOverlayMode, setActiveYear } = useMapStore();
   const [analyses, setAnalyses] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const fetchAnalyses = async () => {
     if (!user || !session) return;
@@ -19,8 +20,15 @@ export default function SavedAnalysesList() {
         headers: { 'Authorization': `Bearer ${session.access_token}` }
       });
       const data = await res.json();
-      setAnalyses(data);
-    } catch (err) {
+      if (data.error) {
+        setErrorMsg(data.error + (data.code ? ` (${data.code})` : ''));
+        setAnalyses([]);
+      } else {
+        setAnalyses(Array.isArray(data) ? data : []);
+        setErrorMsg(null);
+      }
+    } catch (err: any) {
+      setErrorMsg(err.message);
       console.error(err);
     } finally {
       setLoading(false);
@@ -52,9 +60,15 @@ export default function SavedAnalysesList() {
         </button>
       </div>
 
+      {errorMsg && (
+        <div className="error-alert-small">
+          ⚠️ {errorMsg}
+        </div>
+      )}
+
       {loading ? (
         <div className="loading-small">A carregar...</div>
-      ) : analyses.length === 0 ? (
+      ) : analyses.length === 0 && !errorMsg ? (
         <div className="empty-state">Ainda não guardou análises.</div>
       ) : (
         <div className="analyses-grid">
