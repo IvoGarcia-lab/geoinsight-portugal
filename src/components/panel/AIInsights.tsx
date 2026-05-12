@@ -1,20 +1,25 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMapStore } from '@/store/useMapStore';
+import AIAdvancedChart from './AIAdvancedChart';
 
 export default function AIInsights() {
-  const { selectedRegion } = useMapStore();
+  const { selectedRegion, setOverlayMode, setSecondaryIndicator, setActiveIndicator } = useMapStore();
   const [analysis, setAnalysis] = useState('');
   const [loading, setLoading] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
   const [streamingRegion, setStreamingRegion] = useState<string | null>(null);
+  
+  // Parsed AI data
+  const [aiData, setAiData] = useState<any>(null);
 
   const runAnalysis = useCallback(async () => {
     if (!selectedRegion) return;
 
     setLoading(true);
     setAnalysis('');
+    setAiData(null);
     setHasAnalyzed(true);
     setStreamingRegion(selectedRegion);
 
@@ -36,20 +41,56 @@ export default function AIInsights() {
         fullText += chunk;
         setAnalysis(fullText);
       }
+      
+      // Parse JSON when stream finishes
+      extractAndExecuteJSON(fullText);
+      
     } catch (err) {
       console.error('AI analysis error:', err);
       setAnalysis('⚠️ Erro ao gerar análise. Tente novamente.');
     } finally {
       setLoading(false);
     }
-  }, [selectedRegion]);
+  }, [selectedRegion, setOverlayMode, setSecondaryIndicator, setActiveIndicator]);
+
+  const extractAndExecuteJSON = (text: string) => {
+    const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+    if (jsonMatch && jsonMatch[1]) {
+      try {
+        const data = JSON.parse(jsonMatch[1]);
+        setAiData(data);
+        
+        // Execute Map Actions
+        if (data.mapActions && Array.isArray(data.mapActions)) {
+          data.mapActions.forEach((action: any) => {
+            if (action.action === 'setOverlayMode' && action.value) {
+              setOverlayMode(action.value);
+            }
+            if (action.action === 'setPrimaryIndicator' && action.value) {
+              // Note: the store uses setActiveIndicator for the primary one in choropleth
+              setActiveIndicator(action.value);
+            }
+            if (action.action === 'setSecondaryIndicator' && action.value) {
+              setSecondaryIndicator(action.value);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Failed to parse AI JSON block', e);
+      }
+    }
+  };
 
   // Reset when region changes
   if (selectedRegion !== streamingRegion && hasAnalyzed) {
     setHasAnalyzed(false);
     setAnalysis('');
+    setAiData(null);
     setStreamingRegion(null);
   }
+
+  // Filter out the JSON block for the markdown renderer
+  const displayMarkdown = analysis.replace(/```json\n[\s\S]*?\n```/g, '');
 
   return (
     <div className="ai-insights">
@@ -78,14 +119,18 @@ export default function AIInsights() {
 
       {!hasAnalyzed && !loading && (
         <p className="ai-hint">
-          Clica em &quot;Analisar região&quot; para gerar insights automáticos com AI.
+          Clica em &quot;Analisar região&quot; para gerar insights automáticos com AI e visualizações avançadas.
         </p>
       )}
 
       {(loading || hasAnalyzed) && analysis && (
         <div className={`ai-content ${loading ? 'streaming' : ''}`}>
-          <MarkdownRenderer text={analysis} />
+          <MarkdownRenderer text={displayMarkdown} />
           {loading && <span className="ai-cursor">▊</span>}
+          
+          {aiData?.chartData && !loading && (
+            <AIAdvancedChart config={aiData.chartData} />
+          )}
         </div>
       )}
     </div>

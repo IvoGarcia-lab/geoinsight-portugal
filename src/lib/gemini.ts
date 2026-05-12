@@ -31,7 +31,24 @@ INSTRUÇÕES:
 4. **Correlações Relevantes**: Identifica possíveis relações entre indicadores (ex: PIB alto + educação alta).
 5. **Recomendação**: Uma sugestão de investigação mais aprofundada.
 
-FORMATO: Markdown. Sê direto, usa dados concretos. Não inventes dados — usa apenas os fornecidos.`;
+FORMATO:
+1. Começa com o texto em Markdown (Resumo, Pontos Fortes, Pontos Fracos, Correlações, Recomendação).
+2. OBRIGATÓRIO: No final do relatório, insere um bloco JSON com a seguinte estrutura exata:
+\`\`\`json
+{
+  "mapActions": [
+    { "action": "setOverlayMode", "value": "bivariate" },
+    { "action": "setPrimaryIndicator", "value": "ID_DO_INDICADOR_1" },
+    { "action": "setSecondaryIndicator", "value": "ID_DO_INDICADOR_2" }
+  ],
+  "chartData": {
+    "type": "scatter",
+    "xAxis": "ID_DO_INDICADOR_1",
+    "yAxis": "ID_DO_INDICADOR_2"
+  }
+}
+\`\`\`
+Substitui "ID_DO_INDICADOR_X" pelos IDs reais dos indicadores fornecidos (ex: "demo_r_pjanaggr3", "nama_10r_3gdp"). As ações de mapa são exemplos, escolhe a correlação mais forte que encontrares. Usa apenas os dados fornecidos.`;
 }
 
 /**
