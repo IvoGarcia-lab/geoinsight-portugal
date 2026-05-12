@@ -4,6 +4,7 @@ import { useEffect, useCallback } from 'react';
 import { MapContainer, TileLayer, GeoJSON, useMap } from 'react-leaflet';
 import type { Layer, LeafletMouseEvent } from 'leaflet';
 import { useMapStore } from '@/store/useMapStore';
+import { useThemeStore } from '@/store/useThemeStore';
 import { INDICATOR_MAP } from '@/config/indicators';
 import { getSchemeForIndicator, createScale, getBivariateColor } from '@/lib/colors';
 import { getNutsName } from '@/lib/nuts';
@@ -48,6 +49,7 @@ export default function InteractiveMap() {
     overlayMode,
     secondaryIndicator,
   } = useMapStore();
+  const isDark = useThemeStore((s) => s.isDark);
 
   // Fetch geo data
   useEffect(() => {
@@ -82,7 +84,7 @@ export default function InteractiveMap() {
           );
           if (!res.ok) throw new Error(`Failed to load indicator ${ind}`);
           const data = await res.json();
-          setIndicatorValues(`${ind}-${activeYear}`, data.values);
+          setIndicatorValues(`${ind}-${activeYear}`, Array.isArray(data.values) ? data.values : []);
         }));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Indicator load failed');
@@ -219,12 +221,20 @@ export default function InteractiveMap() {
         <MapUpdater />
 
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+          key={isDark ? "dark-base" : "light-base"}
+          url={isDark 
+            ? "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png"
+          }
           attribution='&copy; <a href="https://carto.com/">CARTO</a>'
         />
 
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+          key={isDark ? "dark-labels" : "light-labels"}
+          url={isDark
+            ? "https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png"
+          }
           pane="shadowPane"
         />
 

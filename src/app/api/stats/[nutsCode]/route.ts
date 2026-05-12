@@ -43,10 +43,11 @@ export async function GET(
           });
           
           if (dbData && dbData.length > 0) {
-            const values = dbData.reduce((acc, point) => {
-              acc[point.region.nutsCode] = point.value;
-              return acc;
-            }, {} as Record<string, number>);
+            const values = dbData.map(point => ({
+              nutsCode: point.region.nutsCode,
+              value: point.value,
+              year: point.year
+            }));
             
             return NextResponse.json({
               indicator: indicatorId,

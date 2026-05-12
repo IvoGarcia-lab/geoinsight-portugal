@@ -37,6 +37,27 @@
   --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+:root.light {
+  --bg-primary: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f3f5;
+  --bg-card: #ffffff;
+  --border: #e9ecef;
+  --border-hover: #dee2e6;
+
+  --text-primary: #212529;
+  --text-secondary: #495057;
+  --text-muted: #868e96;
+  --text-accent: #339af0;
+
+  --accent: #339af0;
+  --accent-glow: rgba(51, 154, 240, 0.15);
+  --accent-warm: #ff6b6b;
+  --accent-green: #51cf66;
+  --accent-purple: #845ef7;
+  --accent-yellow: #fcc419;
+}
+
 /* ── Reset ─────────────────────────────── */
 *,
 *::before,

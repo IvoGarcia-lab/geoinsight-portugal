@@ -6,6 +6,8 @@ import LayerSelector from '@/components/ui/LayerSelector';
 import UserAccount from '@/components/auth/UserAccount';
 import SaveAnalysis from '@/components/ui/SaveAnalysis';
 
+import ThemeToggle from '@/components/ui/ThemeToggle';
+
 // Leaflet must be loaded client-side only (no SSR)
 const InteractiveMap = dynamic(
   () => import('@/components/map/InteractiveMap'),
@@ -34,6 +36,7 @@ export default function Home() {
         </div>
 
         <div className="header-actions">
+          <ThemeToggle />
           <SaveAnalysis />
           <LayerSelector />
           <UserAccount />
